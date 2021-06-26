@@ -2,17 +2,57 @@ const router = require('express').Router()
 const verify = require('./authVerify')
 const Problem = require('../models/problem')
 const Joi = require('joi')
+const axios = require('axios')
+const User = require('../models/user')
 
 const postSchema = Joi.object().keys({
   name: Joi.string().required(),
   statement: Joi.string().required(),
   difficultyLevel: Joi.string().valid('EASY', 'MEDIUM', 'HARD'),
+  tags: Joi.string().valid(
+    'array',
+    'string',
+    'dp',
+    'trees',
+    'graph',
+    'heap',
+    'stack',
+    'queue',
+    'adhoc',
+    'matrix',
+    'hash',
+    'bit manipulation',
+    'number theory',
+    'math',
+    'trie',
+    'sorting',
+    'searching'
+  ),
 })
 
 const updateSchema = Joi.object().keys({
-  name: Joi.string().required(),
-  statement: Joi.string().required(),
+  name: Joi.string(),
+  statement: Joi.string(),
   difficultyLevel: Joi.string().valid('EASY', 'MEDIUM', 'HARD'),
+  tags: Joi.string().valid(
+    'array',
+    'string',
+    'dp',
+    'trees',
+    'graph',
+    'heap',
+    'stack',
+    'queue',
+    'adhoc',
+    'matrix',
+    'hash',
+    'bit manipulation',
+    'number theory',
+    'math',
+    'trie',
+    'sorting',
+    'searching'
+  ),
 })
 
 router.get('/', async (req, res) => {
@@ -48,6 +88,59 @@ router.get('/:id', verify, async (req, res) => {
   }
 })
 
+router.post('/:id', verify, async (req, res) => {
+  const problem = await Problem.findOne({ _id: req.params.id })
+  const input = problem.input
+  axios
+    .post('https://api.jdoodle.com/v1/execute', {
+      script: req.body.script,
+      language: req.body.language,
+      stdin: input,
+      versionIndex: req.body.versionIndex,
+      clientId: process.env.JD_Client_ID,
+      clientSecret: process.env.JD_Client_Secret,
+    })
+    .then((response) => {
+      const outputString = response.data.output
+      if (
+        outputString.includes('error') ||
+        outputString.includes('warning') ||
+        outputString.includes('Timeout')
+      ) {
+        return res.status(200).json({
+          status: 'success',
+          op: response.data,
+        })
+      }
+      const outputStringCompare = outputString.substring(
+        9,
+        outputString.length - 1
+      )
+      const actualOutput = problem.output
+      actualOutput.slice(0, -1)
+      console.log(actualOutput)
+      console.log(actualOutput.length)
+      console.log(outputStringCompare)
+      console.log(outputStringCompare.length)
+      if (actualOutput === outputStringCompare) {
+        return res.status(200).json({
+          status: 'success',
+          op: 'AC',
+        })
+      } else {
+        return res.status(200).json({
+          status: 'success',
+          op: 'WA',
+        })
+      }
+    })
+    .catch((error) => {
+      res.status(500).json({
+        err: error,
+      })
+    })
+})
+
 router.post('/', verify, async (req, res) => {
   const problemExist = await Problem.findOne({ name: req.body.name })
   if (problemExist) {
@@ -62,10 +155,25 @@ router.post('/', verify, async (req, res) => {
     })
   }
 
+  const user = await User.findById(req.user._id)
+  /*if (user.solved.length < 2) {
+    return res.status(400).json({
+      err: 'Not eligible to upload problem',
+    })
+  }*/
+  const sampleInput = req.files.sampleInput.data.toString()
+  const sampleOutput = req.files.sampleOutput.data.toString()
+  const input = req.files.input.data.toString()
+  const output = req.files.output.data.toString()
+
   const problem = new Problem({
     name: req.body.name,
     statement: req.body.statement,
     difficultyLevel: req.body.difficultyLevel,
+    sampleInput: sampleInput,
+    sampleOutput: sampleOutput,
+    input: input,
+    output: output,
     createdBy: req.user._id,
   })
 
@@ -83,20 +191,43 @@ router.post('/', verify, async (req, res) => {
 })
 
 router.patch('/:id', verify, async (req, res) => {
+  const problem = await Problem.findOne({ _id: req.params.id })
+  if (!problem) {
+    return res.status(400).json({
+      err: 'problem not found',
+    })
+  }
+  if (req.user._id !== problem.createdBy) {
+    return res.status(400).json({
+      err: 'Not authorized to modify',
+    })
+  }
+  const { error, value } = updateSchema.validate(req.body)
+  if (error) {
+    return res.status(400).json({
+      err: error.details[0].message,
+    })
+  }
+  const upd = {}
+  if (req.body !== null) {
+    for (const [key, value] of Object.entries(req.body)) {
+      upd[key] = value
+    }
+  }
+  if (req.files !== null) {
+    for (const [key, value] of Object.entries(req.files)) {
+      const temporary = value.data.toString()
+      upd[key] = temporary
+    }
+  }
   try {
-    const problem = await Problem.findOne({ _id: req.params.id })
-    if (!problem) {
-      return res.status(400).json({
-        err: 'problem not found',
-      })
-    }
-    if (req.user._id !== problem.createdBy) {
-      return res.status(400).json({
-        err: 'Not authorized to modify',
-      })
-    }
-    await Problem.findOneAndUpdate({ _id: req.params.id }, req.body)
-    const updatedProblem = await Problem.findOne({ _id: req.params.id })
+    const updatedProblem = await Problem.findOneAndUpdate(
+      { _id: req.params.id },
+      upd,
+      {
+        new: true,
+      }
+    )
     res.status(200).json({
       status: 'success',
       problem: updatedProblem,

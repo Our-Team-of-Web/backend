@@ -76,12 +76,17 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const token = jwt.sign({ _id: user._id }, process.env.TOKEN_SECRET, {
-      expiresIn: '10m',
-    })
-    res.header('auth-token', token).status(200).json({
+    const access_token = jwt.sign(
+      { _id: user._id },
+      process.env.ACCESS_TOKEN_SECRET,
+      {
+        expiresIn: '30m',
+      },
+      { algorithm: 'RS256' }
+    )
+    res.header('auth-token', access_token).status(200).json({
       status: 'success',
-      token: token,
+      access_token: access_token,
     })
   } catch (error) {
     res.status(500).json({

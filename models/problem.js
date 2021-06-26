@@ -39,15 +39,19 @@ const problemSchema = mongoose.Schema({
   },
   sampleOutput: {
     type: String,
+    required: true,
   },
   sampleInput: {
     type: String,
+    required: true,
   },
   output: {
     type: String,
+    required: true,
   },
-  Input: {
+  input: {
     type: String,
+    required: true,
   },
   createdBy: {
     type: String,
