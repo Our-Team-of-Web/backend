@@ -5,6 +5,15 @@ const Joi = require('joi')
 const axios = require('axios')
 const User = require('../models/user')
 
+const checkPresence = (arr, obj) => {
+  for (let i = 0; i < arr.length; i++) {
+    if (arr[i] === obj) {
+      return true
+    }
+  }
+  return false
+}
+
 const postSchema = Joi.object().keys({
   name: Joi.string().required(),
   statement: Joi.string().required(),
@@ -98,6 +107,7 @@ router.get('/:id', verify, async (req, res) => {
 
 router.post('/:id', verify, async (req, res) => {
   const problem = await Problem.findOne({ _id: req.params.id })
+  const user = await User.findOne({ _id: req.user._id })
   const input = problem.input
   axios
     .post('https://api.jdoodle.com/v1/execute', {
@@ -125,8 +135,27 @@ router.post('/:id', verify, async (req, res) => {
         outputString.length - 1
       )
       const actualOutput = problem.output
-      actualOutput.slice(0, -1)
-      if (actualOutput === outputStringCompare) {
+      const actualOutputRes = actualOutput.slice(0, -1)
+      console.log(actualOutputRes)
+      console.log(`size:${actualOutputRes.length}`)
+      console.log(outputStringCompare)
+      console.log(`size:${outputStringCompare.length}`)
+      if (actualOutputRes === outputStringCompare) {
+        if (
+          !checkPresence(user.solved, { id: problem._id, name: problem.name })
+        ) {
+          User.updateOne(
+            { _id: req.user._id },
+            { $push: { solved: [{ id: problem._id, name: problem.name }] } },
+            (err, result) => {
+              if (err) {
+                res.status(400).json({
+                  err: err,
+                })
+              }
+            }
+          )
+        }
         return res.status(200).json({
           status: 'success',
           op: 'AC',
