@@ -14,6 +14,14 @@ const problemSchema = mongoose.Schema({
     enum: ['EASY', 'MEDIUM', 'HARD'],
     default: 'EASY',
   },
+  inputFormat: {
+    type: String,
+    required: true,
+  },
+  outputFormat: {
+    type: String,
+    required: true,
+  },
   tags: {
     type: String,
     enum: [
@@ -39,11 +47,11 @@ const problemSchema = mongoose.Schema({
   },
   sampleOutput: {
     type: String,
-    required: true,
+    //required: true,
   },
   sampleInput: {
     type: String,
-    required: true,
+    //required: true,
   },
   output: {
     type: String,
