@@ -44,6 +44,7 @@ router.post('/register', async (req, res) => {
 
   try {
     const savedUser = await user.save()
+    savedUser['password'] = undefined
     res.status(200).json({
       status: 'user created',
       user: savedUser,

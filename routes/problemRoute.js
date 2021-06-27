@@ -118,10 +118,6 @@ router.post('/:id', verify, async (req, res) => {
       )
       const actualOutput = problem.output
       actualOutput.slice(0, -1)
-      console.log(actualOutput)
-      console.log(actualOutput.length)
-      console.log(outputStringCompare)
-      console.log(outputStringCompare.length)
       if (actualOutput === outputStringCompare) {
         return res.status(200).json({
           status: 'success',
@@ -161,6 +157,16 @@ router.post('/', verify, async (req, res) => {
       err: 'Not eligible to upload problem',
     })
   }*/
+  if (
+    !req.files.sampleInput.name.includes('.txt') ||
+    !req.files.sampleOutput.name.includes('.txt') ||
+    !req.files.input.name.includes('.txt') ||
+    !req.files.output.name.includes('.txt')
+  ) {
+    return res.status(400).json({
+      err: 'File input should be .txt',
+    })
+  }
   const sampleInput = req.files.sampleInput.data.toString()
   const sampleOutput = req.files.sampleOutput.data.toString()
   const input = req.files.input.data.toString()
@@ -170,6 +176,7 @@ router.post('/', verify, async (req, res) => {
     name: req.body.name,
     statement: req.body.statement,
     difficultyLevel: req.body.difficultyLevel,
+    tags: req.body.tags,
     sampleInput: sampleInput,
     sampleOutput: sampleOutput,
     input: input,
