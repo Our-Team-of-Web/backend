@@ -28,6 +28,10 @@ const postSchema = Joi.object().keys({
     'sorting',
     'searching'
   ),
+  sampleInput: Joi.string().required(),
+  sampleOutput: Joi.string().required(),
+  inputFormat: Joi.string().required(),
+  outputFormat: Joi.string().required(),
 })
 
 const updateSchema = Joi.object().keys({
@@ -53,6 +57,10 @@ const updateSchema = Joi.object().keys({
     'sorting',
     'searching'
   ),
+  sampleInput: Joi.string(),
+  sampleOutput: Joi.string(),
+  inputFormat: Joi.string(),
+  outputFormat: Joi.string(),
 })
 
 router.get('/', async (req, res) => {
@@ -158,8 +166,6 @@ router.post('/', verify, async (req, res) => {
     })
   }*/
   if (
-    !req.files.sampleInput.name.includes('.txt') ||
-    !req.files.sampleOutput.name.includes('.txt') ||
     !req.files.input.name.includes('.txt') ||
     !req.files.output.name.includes('.txt')
   ) {
@@ -167,20 +173,19 @@ router.post('/', verify, async (req, res) => {
       err: 'File input should be .txt',
     })
   }
-  const sampleInput = req.files.sampleInput.data.toString()
-  const sampleOutput = req.files.sampleOutput.data.toString()
   const input = req.files.input.data.toString()
   const output = req.files.output.data.toString()
-
   const problem = new Problem({
     name: req.body.name,
     statement: req.body.statement,
     difficultyLevel: req.body.difficultyLevel,
     tags: req.body.tags,
-    sampleInput: sampleInput,
-    sampleOutput: sampleOutput,
+    sampleInput: req.body.sampleInput,
+    sampleOutput: req.body.sampleOutput,
     input: input,
     output: output,
+    inputFormat: req.body.inputFormat,
+    outputFormat: req.body.outputFormat,
     createdBy: req.user._id,
   })
 

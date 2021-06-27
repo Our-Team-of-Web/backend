@@ -47,11 +47,11 @@ const problemSchema = mongoose.Schema({
   },
   sampleOutput: {
     type: String,
-    //required: true,
+    required: true,
   },
   sampleInput: {
     type: String,
-    //required: true,
+    required: true,
   },
   output: {
     type: String,
