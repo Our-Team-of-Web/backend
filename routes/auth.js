@@ -92,13 +92,14 @@ router.post('/login', async (req, res) => {
       { _id: user._id },
       process.env.ACCESS_TOKEN_SECRET,
       {
-        expiresIn: '1hr',
+        expiresIn: '2hr',
       },
       { algorithm: 'RS256' }
     )
     res.header('auth-token', access_token).status(200).json({
       status: 'success',
       access_token: access_token,
+      id: user._id,
     })
   } catch (error) {
     res.status(500).json({
@@ -217,7 +218,7 @@ router.get('/added/:id', verify, async (req, res) => {
     }
     if (req.user._id !== user._id.toString()) {
       return res.status(400).json({
-        err: 'Not authorized to modify',
+        err: 'Not authorized to show',
       })
     }
     res.status(200).json({

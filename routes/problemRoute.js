@@ -8,6 +8,8 @@ const User = require('../models/user')
 const checkPresence = (arr, obj) => {
   for (let i = 0; i < arr.length; i++) {
     if (arr[i] === obj) {
+      console.log(arr[i])
+      console.log(obj)
       return true
     }
   }
@@ -182,17 +184,21 @@ router.post('/:id', verify, async (req, res) => {
             },
             (err, result) => {
               if (err) {
-                res.status(400).json({
+                return res.status(400).json({
                   err: err,
                 })
               }
+              return res.status(200).json({
+                status: 'success',
+                op: 'AC',
+              })
             }
           )
         }
-        return res.status(200).json({
+        /*return res.status(200).json({
           status: 'success',
           op: 'AC',
-        })
+        })*/
       } else {
         return res.status(200).json({
           status: 'success',
