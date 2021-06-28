@@ -73,12 +73,35 @@ const updateSchema = Joi.object().keys({
 })
 
 router.get('/', async (req, res) => {
+  const page = parseInt(req.query.page)
+  const limit = parseInt(req.query.limit)
+  const diffLevel = req.query.difficultyLevel
+  const tag = req.query.tags
+  const index = (page - 1) * limit
+  let filter = {}
+  if (diffLevel) {
+    filter.difficultyLevel = diffLevel
+  }
+  if (tag) {
+    filter.tags = tag
+  }
   try {
-    const problems = await Problem.find()
-    res.status(200).json({
-      status: 'success',
-      problems: problems,
-    })
+    if (Object.keys(filter).length === 0) {
+      const problems = await Problem.find().limit(limit).skip(index).exec()
+      res.status(200).json({
+        status: 'success',
+        problems: problems,
+      })
+    } else {
+      const problems = await Problem.find(filter)
+        .limit(limit)
+        .skip(index)
+        .exec()
+      res.status(200).json({
+        status: 'success',
+        problems: problems,
+      })
+    }
   } catch (error) {
     res.status(500).json({
       err: error,
@@ -141,12 +164,10 @@ router.post('/:id', verify, async (req, res) => {
       console.log(outputStringCompare)
       console.log(`size:${outputStringCompare.length}`)
       if (actualOutputRes === outputStringCompare) {
-        if (
-          !checkPresence(user.solved, { id: problem._id, name: problem.name })
-        ) {
+        if (!checkPresence(user.solved, { id: problem._id })) {
           User.updateOne(
             { _id: req.user._id },
-            { $push: { solved: [{ id: problem._id, name: problem.name }] } },
+            { $push: { solved: [{ id: problem._id }] } },
             (err, result) => {
               if (err) {
                 res.status(400).json({
@@ -220,6 +241,17 @@ router.post('/', verify, async (req, res) => {
 
   try {
     const savedProblem = await problem.save()
+    User.updateOne(
+      { _id: req.user._id },
+      { $push: { problemAdded: [{ id: savedProblem._id }] } },
+      (err, result) => {
+        if (err) {
+          res.status(400).json({
+            err: err,
+          })
+        }
+      }
+    )
     res.status(200).json({
       status: 'success',
       problem: savedProblem,
