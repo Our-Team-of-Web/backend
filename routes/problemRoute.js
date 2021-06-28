@@ -164,10 +164,22 @@ router.post('/:id', verify, async (req, res) => {
       console.log(outputStringCompare)
       console.log(`size:${outputStringCompare.length}`)
       if (actualOutputRes === outputStringCompare) {
-        if (!checkPresence(user.solved, { id: problem._id })) {
+        if (
+          !checkPresence(user.solved, {
+            id: problem._id,
+            name: problem.name,
+            tags: problems.tags,
+          })
+        ) {
           User.updateOne(
             { _id: req.user._id },
-            { $push: { solved: [{ id: problem._id }] } },
+            {
+              $push: {
+                solved: [
+                  { id: problem._id, name: problem.name, tags: problem.tags },
+                ],
+              },
+            },
             (err, result) => {
               if (err) {
                 res.status(400).json({
@@ -243,7 +255,17 @@ router.post('/', verify, async (req, res) => {
     const savedProblem = await problem.save()
     User.updateOne(
       { _id: req.user._id },
-      { $push: { problemAdded: [{ id: savedProblem._id }] } },
+      {
+        $push: {
+          problemAdded: [
+            {
+              id: savedProblem._id,
+              name: savedProblem.name,
+              tags: savedProblem.tags,
+            },
+          ],
+        },
+      },
       (err, result) => {
         if (err) {
           res.status(400).json({
