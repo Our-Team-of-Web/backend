@@ -8,8 +8,6 @@ const User = require('../models/user')
 const checkPresence = (arr, obj) => {
   for (let i = 0; i < arr.length; i++) {
     if (arr[i] === obj) {
-      console.log(arr[i])
-      console.log(obj)
       return true
     }
   }
@@ -75,6 +73,14 @@ const updateSchema = Joi.object().keys({
 })
 
 router.get('/', async (req, res) => {
+  let countProblems = 0
+  try {
+    countProblems = await Problem.countDocuments()
+  } catch (error) {
+    return res.status(400).json({
+      err: error,
+    })
+  }
   const page = parseInt(req.query.page)
   const limit = parseInt(req.query.limit)
   const diffLevel = req.query.difficultyLevel
@@ -92,6 +98,7 @@ router.get('/', async (req, res) => {
       const problems = await Problem.find().limit(limit).skip(index).exec()
       res.status(200).json({
         status: 'success',
+        count: countProblems,
         problems: problems,
       })
     } else {
@@ -101,6 +108,7 @@ router.get('/', async (req, res) => {
         .exec()
       res.status(200).json({
         status: 'success',
+        count: countProblems,
         problems: problems,
       })
     }
@@ -134,8 +142,8 @@ router.post('/:id', verify, async (req, res) => {
   const problem = await Problem.findOne({ _id: req.params.id })
   const user = await User.findOne({ _id: req.user._id })
   const input = problem.input
-  axios
-    .post('https://api.jdoodle.com/v1/execute', {
+  try {
+    const response = await axios.post('https://api.jdoodle.com/v1/execute', {
       script: req.body.script,
       language: req.body.language,
       stdin: input,
@@ -143,74 +151,61 @@ router.post('/:id', verify, async (req, res) => {
       clientId: process.env.JD_Client_ID,
       clientSecret: process.env.JD_Client_Secret,
     })
-    .then((response) => {
-      const outputString = response.data.output
+    const output = response.data.output
+    const actualOutput = problem.output
+    if (output[output.length - 1] !== `\n`) {
+      output[output.length - 1] = `\n`
+    }
+    if (actualOutput[actualOutput.length - 1] !== `\n`) {
+      actualOutput[actualOutput.length - 1] = `\n`
+    }
+    console.log(output)
+    console.log(output.length)
+    console.log(actualOutput)
+    console.log(actualOutput.length)
+    if (output === actualOutput) {
       if (
-        outputString.includes('error') ||
-        outputString.includes('warning') ||
-        outputString.includes('Timeout')
-      ) {
-        return res.status(200).json({
-          status: 'success',
-          op: response.data,
+        !checkPresence(user.solved, {
+          _id: problem._id,
+          name: problem.name,
+          tags: problem.tags,
         })
-      }
-      const outputStringCompare = outputString.substring(
-        9,
-        outputString.length - 1
-      )
-      const actualOutput = problem.output
-      const actualOutputRes = actualOutput.slice(0, -1)
-      console.log(actualOutputRes)
-      console.log(`size:${actualOutputRes.length}`)
-      console.log(outputStringCompare)
-      console.log(`size:${outputStringCompare.length}`)
-      if (actualOutputRes === outputStringCompare) {
-        if (
-          !checkPresence(user.solved, {
-            id: problem._id,
-            name: problem.name,
-            tags: problems.tags,
-          })
-        ) {
-          User.updateOne(
-            { _id: req.user._id },
-            {
-              $push: {
-                solved: [
-                  { id: problem._id, name: problem.name, tags: problem.tags },
-                ],
-              },
+      ) {
+        User.updateOne(
+          { _id: req.user._id },
+          {
+            $push: {
+              solved: [
+                {
+                  id: problem._id,
+                  name: problem.name,
+                  tags: problem.tags,
+                },
+              ],
             },
-            (err, result) => {
-              if (err) {
-                return res.status(400).json({
-                  err: err,
-                })
-              }
-              return res.status(200).json({
-                status: 'success',
-                op: 'AC',
+          },
+          (err, result) => {
+            if (err) {
+              res.status(400).json({
+                err: err,
               })
             }
-          )
-        }
-        /*return res.status(200).json({
-          status: 'success',
-          op: 'AC',
-        })*/
-      } else {
-        return res.status(200).json({
-          status: 'success',
-          op: 'WA',
-        })
+          }
+        )
       }
-    })
-    .catch((error) => {
-      res.status(500).json({
-        err: error,
+      return res.status(200).json({
+        op: 'AC',
       })
+    } else {
+      return res.status(200).json({
+        op: 'WA',
+      })
+    }
+  } catch (error) {
+    res.status(500).json({
+      err: error,
     })
+  }
 })
 
 router.post('/', verify, async (req, res) => {
@@ -332,30 +327,6 @@ router.patch('/:id', verify, async (req, res) => {
     res.status(200).json({
       status: 'success',
       problem: updatedProblem,
-    })
-  } catch (error) {
-    res.status(500).json({
-      err: error,
-    })
-  }
-})
-
-router.delete('/:id', verify, async (req, res) => {
-  try {
-    const problem = await Problem.findOne({ _id: req.params.id })
-    if (!problem) {
-      return res.status(400).json({
-        err: 'problem not found',
-      })
-    }
-    if (req.user._id !== problem.createdBy) {
-      return res.status(400).json({
-        err: 'Not authorized to delete',
-      })
-    }
-    await Problem.deleteOne({ _id: req.params.id })
-    res.status(200).json({
-      status: 'sucess',
     })
   } catch (error) {
     res.status(500).json({
