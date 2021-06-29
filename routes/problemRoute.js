@@ -151,13 +151,13 @@ router.post('/:id', verify, async (req, res) => {
       clientId: process.env.JD_Client_ID,
       clientSecret: process.env.JD_Client_Secret,
     })
-    const output = response.data.output
-    const actualOutput = problem.output
-    if (output[output.length - 1] !== `\n`) {
-      output[output.length - 1] = `\n`
+    let output = response.data.output
+    let actualOutput = problem.output
+    if (output[output.length - 1] === '\n') {
+      output = output.slice(0, -1)
     }
-    if (actualOutput[actualOutput.length - 1] !== `\n`) {
-      actualOutput[actualOutput.length - 1] = `\n`
+    if (actualOutput[actualOutput.length - 1] === '\n') {
+      actualOutput = actualOutput.slice(0, -1)
     }
     console.log(output)
     console.log(output.length)
