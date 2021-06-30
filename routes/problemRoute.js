@@ -151,19 +151,62 @@ router.post('/:id', verify, async (req, res) => {
       clientId: process.env.JD_Client_ID,
       clientSecret: process.env.JD_Client_Secret,
     })
+    console.log(response)
     let output = response.data.output
     let actualOutput = problem.output
-    if (output[output.length - 1] === '\n') {
-      output = output.slice(0, -1)
+    output = output.replace(/(?:\\[r]|[\r]+)+/g, '')
+    actualOutput = actualOutput.replace(/(?:\\[r]|[\r]+)+/g, '')
+    ok = true
+    ;(t1 = ''), (t2 = '')
+    ;(i = 0), (j = 0)
+    while (i < output.length && j < actualOutput.length) {
+      if (output[i] === '\n' && actualOutput[j] === '\n') {
+        console.log(t1)
+        console.log(t2)
+        if (t1[t1.length - 1] === ' ') {
+          t1 = t1.slice(0, -1)
+        }
+        if (t2[t2.length - 1] === ' ') {
+          t2 = t2.slice(0, -1)
+        }
+        const res1 = t1.split(' ')
+        const res2 = t2.split(' ')
+        secondOk = true
+        for (let v = 0; v < res1.length; v++) {
+          if (res1[v] !== res2[v]) {
+            secondOk = false
+            break
+          }
+        }
+        if (secondOk === false) {
+          console.log(res1)
+          console.log(res1.length)
+          console.log(res2)
+          console.log(res2.length)
+          console.log('GGGGG')
+          ok = false
+          break
+        }
+        t1 = ''
+        t2 = ''
+        i++
+        j++
+      } else {
+        if (output[i] !== '\n') {
+          t1 += output[i]
+          i++
+        }
+        if (actualOutput[j] !== '\n') {
+          t2 += actualOutput[j]
+          j++
+        }
+      }
     }
-    if (actualOutput[actualOutput.length - 1] === '\n') {
-      actualOutput = actualOutput.slice(0, -1)
-    }
-    console.log(output)
+    /*console.log(output)
     console.log(output.length)
     console.log(actualOutput)
-    console.log(actualOutput.length)
-    if (output === actualOutput) {
+    console.log(actualOutput.length)*/
+    if (ok) {
       if (
         !checkPresence(user.solved, {
           _id: problem._id,
