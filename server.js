@@ -22,3 +22,16 @@ const port = process.env.PORT || 5000
 app.listen(port, () => {
   console.log(`server is running on port:${port}`)
 })
+
+/*process.on('SIGTERM', () => {
+  console.info('SIGTERM signal received.')
+  console.log('Closing http server.')
+  server.close(() => {
+    console.log('Http server closed.')
+    // boolean means [force], see in mongoose doc
+    mongoose.connection.close(false, () => {
+      console.log('MongoDb connection closed.')
+      process.exit(0)
+    })
+  })
+})*/

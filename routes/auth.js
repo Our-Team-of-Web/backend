@@ -93,8 +93,7 @@ router.post('/login', async (req, res) => {
       process.env.ACCESS_TOKEN_SECRET,
       {
         expiresIn: '2hr',
-      },
-      { algorithm: 'RS256' }
+      }
     )
     res.header('auth-token', access_token).status(200).json({
       status: 'success',
