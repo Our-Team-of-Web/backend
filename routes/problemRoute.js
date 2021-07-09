@@ -5,14 +5,15 @@ const Joi = require('joi')
 const axios = require('axios')
 const User = require('../models/user')
 
-const checkPresence = (arr, obj) => {
+/*const checkPresence = (arr, obj) => {
   for (let i = 0; i < arr.length; i++) {
     if (JSON.stringify(arr[i]) === JSON.stringify(obj)) {
+      //console.log('ya')
       return true
     }
   }
   return false
-}
+}*/
 
 const postSchema = Joi.object().keys({
   name: Joi.string().required(),
@@ -138,6 +139,28 @@ router.get('/:id', verify, async (req, res) => {
   }
 })
 
+router.post('/test', verify, async (req, res) => {
+  const input = req.body.input
+  try {
+    const response = await axios.post('https://api.jdoodle.com/v1/execute', {
+      script: req.body.script,
+      language: req.body.language,
+      stdin: input,
+      versionIndex: req.body.versionIndex,
+      clientId: process.env.JD_Client_ID,
+      clientSecret: process.env.JD_Client_Secret,
+    })
+    res.status(200).json({
+      status: 'ok',
+      output: response.data.output,
+    })
+  } catch (error) {
+    res.status(500).json({
+      err: error,
+    })
+  }
+})
+
 router.post('/:id', verify, async (req, res) => {
   const problem = await Problem.findOne({ _id: req.params.id })
   const user = await User.findOne({ _id: req.user._id })
@@ -207,35 +230,33 @@ router.post('/:id', verify, async (req, res) => {
     console.log(actualOutput)
     console.log(actualOutput.length)*/
     if (ok) {
-      if (
+      /*if (
         !checkPresence(user.solved, {
           _id: problem._id,
           name: problem.name,
-          tags: problem.tags,
         })
-      ) {
-        User.updateOne(
-          { _id: req.user._id },
-          {
-            $push: {
-              solved: [
-                {
-                  id: problem._id,
-                  name: problem.name,
-                  tags: problem.tags,
-                },
-              ],
-            },
+      ) {*/
+      User.updateOne(
+        { _id: req.user._id },
+        {
+          $push: {
+            solved: [
+              {
+                id: problem._id,
+                name: problem.name,
+              },
+            ],
           },
-          (err, result) => {
-            if (err) {
-              res.status(400).json({
-                err: err,
-              })
-            }
+        },
+        (err, result) => {
+          if (err) {
+            res.status(400).json({
+              err: err,
+            })
           }
-        )
-      }
+        }
+      )
+      //}
       return res.status(200).json({
         op: 'AC',
       })
@@ -305,7 +326,6 @@ router.post('/', verify, async (req, res) => {
             {
               id: savedProblem._id,
               name: savedProblem.name,
-              tags: savedProblem.tags,
             },
           ],
         },
